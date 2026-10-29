@@ -76,3 +76,67 @@ ON l.country_id = m.country_id
 -- Only include 2013/2014 results
 WHERE season = '2013/2014'
 GROUP BY l.name;
+
+
+--In soccer leagues, games are played at different stages. Winning teams progress from one stage to the next, until they reach the final stage. In each stage, the stakes become higher than the previous one. The match table includes data about the different stages that each match took place in.
+SELECT 
+	-- Select the stage and average goals for each stage
+	m.stage,
+    ROUND(AVG(m.home_goal + m.away_goal),2) AS avg_goals,
+    -- Select the average overall goals for the 2012/2013 season
+    ROUND((SELECT AVG(home_goal + away_goal) 
+           FROM match 
+           WHERE season = '2012/2013'),2) AS overall
+FROM match AS m
+-- Filter for the 2012/2013 season
+WHERE season = '2012/2013'
+-- Group by stage
+GROUP BY m.stage;
+
+--Add a subquery in FROM
+--Calculate the average total goals from the match table for each stage in the FROM clause subquery.
+--Add a subquery to the WHERE clause that calculates the overall average total goals.
+--Filter the main query for stages where the average total goals is higher than the overall average.
+--Select the stage and avg_goals columns from the s subquery into the main query.
+
+SELECT 
+	-- 4. Select the stage and average goals from the subquery
+	s.stage,
+	ROUND(s.avg_goals,2) AS avg_goals
+FROM 
+	-- 1. Select the stage and average goals in 2012/2013
+	(SELECT
+		 stage,
+         AVG(home_goal + away_goal) AS avg_goals
+	 FROM match
+	 WHERE season = '2012/2013'
+	 GROUP BY stage) AS s
+WHERE 
+	-- 2. 3. Filter the main query using the subquery
+	s.avg_goals > (SELECT AVG(home_goal + away_goal) 
+                    FROM match WHERE season = '2012/2013');
+
+
+-- Add a subquery in SELECT
+--you will add a subquery in SELECT to compare the average number of goals scored in each stage to the total.
+--Create a subquery in SELECT that yields the average total goals scored in the 2012/2013 season and stores it in a column named overall_avg
+-- Create a subquery in FROM that calculates the average total goals scored in each stage during the 2012/2013 season.
+-- Filter the main query for stages where the average total goals exceeds the overall average in 2012/2013.
+SELECT 
+	-- 4.Select the stage and average goals from s
+	s.stage,
+    ROUND(s.avg_goals,2) AS avg_goal,
+    -- 1. Select the overall average for 2012/2013
+    (SELECT AVG(home_goal + away_goal) FROM match WHERE season = '2012/2013') AS overall_avg
+FROM 
+	-- 2. Select the stage and average goals in 2012/2013 from match
+	(SELECT
+		 stage,
+         AVG(home_goal + away_goal) AS avg_goals
+	 FROM match
+	 WHERE season = '2012/2013'
+	 GROUP BY stage) AS s
+WHERE 
+	-- 3. Filter the main query using the subquery
+	s.avg_goals > (SELECT AVG(home_goal + away_goal) 
+                    FROM match WHERE season = '2012/2013');
