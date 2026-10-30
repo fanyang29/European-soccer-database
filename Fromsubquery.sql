@@ -140,3 +140,169 @@ WHERE
 	-- 3. Filter the main query using the subquery
 	s.avg_goals > (SELECT AVG(home_goal + away_goal) 
                     FROM match WHERE season = '2012/2013');
+
+
+-- Correlated subqueries
+-- Correlated subqueries are subqueries that reference one or more columns in the main query. Correlated subqueries depend on information in the main query to run, and thus, cannot be executed on their own.
+-- Correlated subqueries are evaluated in SQL once per row of data retrieved—a process that takes a lot more computing power and time than a simple subquery.
+-- In this exercise, you will practice using correlated subqueries to examine matches with scores that are extreme outliers for each country—above 3 times the average score!
+-- Start the subquery in WHERE by taking the average/mean of the home and away goals.
+-- Complete the subquery column references, so that country_id is matched in the main and sub tables.
+SELECT 
+	main.country_id,
+    main.date,
+    main.home_goal,
+    main.away_goal
+FROM match AS main
+WHERE 
+	-- Filter the main query by the subquery
+	(home_goal + away_goal) > 
+        (SELECT AVG((sub.home_goal + sub.away_goal) * 3)
+         FROM match AS sub
+         -- Join the main query to the subquery with country_id in WHERE
+         WHERE main.country_id = sub.country_id);
+
+-- Complete the subquery to select the matches with the highest number of total goals.
+-- Match the subquery to the main query using the country_id and season columns in both tables.
+SELECT 
+	main.country_id,
+    main.date,
+    main.home_goal,
+    main.away_goal
+FROM match AS main
+WHERE 
+	-- Filter for matches with the maximum number of total goals scored
+	(home_goal + away_goal) = 
+        (SELECT max(sub.home_goal + sub.away_goal)
+         FROM match AS sub
+         -- Join the main query to the subquery in WHERE
+         WHERE main.country_id = sub.country_id
+               AND main.season = sub.season);
+
+-- Nested subqueries (use to filter and aggregation)
+-- Nested subqueries are subqueries that contain another subquery within them. Nested subqueries can be used to perform multiple levels of filtering or aggregation, allowing for more complex queries and data analysis.
+-- You'll compare the maximum number of goals scored in a single match across each season against the maximum for the England Premier League.
+-- Complete a nested subquery to select the country_id for 'England Premier League' from league, which will be used to filter the parent subquery.
+
+SELECT 
+    season,
+    MAX(home_goal + away_goal) AS max_goals,
+    (SELECT MAX(home_goal + away_goal) 
+     FROM match 
+     WHERE season = main.season
+     -- Subquery to get the max goals in an 'England Premier League' match for the same season
+     AND country_id IN (SELECT country_id FROM league WHERE name = 'England Premier League')
+    ) AS pl_max_goals
+FROM match AS main
+GROUP BY season;
+
+
+-- Nest a subquery in FROM
+-- What's the average number of matches per season where a team scored 5 or more goals? How does this differ by country?
+-- Let's use a nested, correlated subquery to perform this operation. In the real world, you will probably find that nesting multiple subqueries is a task you don't have to perform often. In some cases, however, you may find yourself struggling to properly group by the column you want, or to calculate information requiring multiple mathematical transformations (i.e., an AVG of a COUNT).
+-- Nesting subqueries and performing your transformations one step at a time, adding it to a subquery, and then performing the next set of transformations is often the easiest way to yield accurate information about your data. Let's get to it!
+
+-- 1. Generate a list of matches where at least one team scored 5 or more goals.
+SELECT
+	country_id,
+    season,
+	id
+FROM match
+WHERE home_goal >= 5  OR away_goal  >= 5;
+
+/*2. Turn the query from the previous step into a subquery in the FROM statement.
+COUNT the match table ids generated in the previous step. */
+-- Count match ids
+SELECT
+    country_id,
+    season,
+    COUNT(subquery.country_id) AS matches
+-- Set up and alias the subquery
+FROM (
+	SELECT
+    	country_id,
+    	season,
+    	id
+	FROM match
+	WHERE home_goal >= 5 OR away_goal >= 5)
+    AS subquery
+GROUP BY country_id, season;
+
+/*Finally, declare the same query from step 2 as a subquery in FROM with the alias outer_s.
+Left join it to the country table using the outer query's country_id column.
+Calculate an AVG of high scoring matches per country in the main query.*/
+
+SELECT
+	c.name AS country,
+    -- Calculate the average matches per season
+	AVG(outer_s.matches) AS avg_seasonal_high_scores  --step 4
+FROM country AS c
+-- Left join outer_s to country
+LEFT JOIN (
+  SELECT country_id, season,
+         COUNT(id) AS matches
+  FROM (
+    SELECT country_id, season, id
+	FROM match
+	WHERE home_goal >= 5 OR away_goal >= 5) AS inner_s  -- step 1
+  -- Close parentheses and alias the subquery
+  GROUP BY country_id, season) AS outer_s  --step 2
+ON c.id = outer_s.country_id   -- step 3
+GROUP BY country;
+
+
+
+
+
+
+
+from words import get_random_word
+
+NUM_ATTEMPTS = 6
+
+def main():
+    # Delete pass and start writing your solution here.
+    print("Welcome to Wordle!")
+    secret="candy"
+    
+    for attempt in range(1, NUM_ATTEMPTS+1): 
+
+        guess= input("Enter your guess: ")
+        results= []
+        remaining_letters=[]
+        new_results=[]
+        for i in secret:
+            remaining_letters.append(i)
+        for i in range(len(secret)): 
+            if guess[i]==secret[i]:
+                results.append("G")
+                remaining_letters.remove(guess[i])
+            else:
+                results.append("B")
+        
+        for i in range(len(guess)):
+            if results[i] == "B":
+                if guess[i] in remaining_letters:
+                    results[i]="Y"
+                    remaining_letters.remove(guess[i])
+        for i in range(len(results)):
+            if results[i] == "G":
+                new_results.append(f"[{guess[i]}]")
+            elif results[i] == "Y":
+                new_results.append(f"({guess[i]})")
+            else:
+                new_results.append(f"{guess[i]}")
+        print(f"Result: {" ".join(new_results)}") 
+        if guess == secret:
+            print(f"Congratulations! You guessed the word in {attempt+1} tries!")
+            return
+
+    
+    
+
+    
+
+
+
+if __name__ == "__main__":
+    main()
