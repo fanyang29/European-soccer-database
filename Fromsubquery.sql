@@ -251,58 +251,71 @@ ON c.id = outer_s.country_id   -- step 3
 GROUP BY country;
 
 
+-- CTEs (Common Table Expressions)
+-- You can list one (or more) subqueries as common table expressions (CTEs) by declaring them ahead of your main query, which is an excellent tool for organizing information and placing it in a logical order.
+-- In this exercise, let's rewrite a similar query using a CTE.
+-- Complete the syntax to declare your CTE.
+-- Select the country_id and match id from the match table in your CTE.
+-- LEFT JOIN the CTE to the league table using country_id.
+
+-- Set up your CTE
+WITH match_list AS (
+    SELECT 
+  		country_id, 
+  		id
+    FROM match
+    WHERE (home_goal + away_goal) >= 10)
+-- Select league name and count of matches from the CTE
+SELECT
+    l.name AS league,
+    COUNT(match_list.id) AS matches
+FROM league AS l
+-- Join the CTE to the league table using country_id
+LEFT JOIN match_list ON l.id = match_list.country_id
+GROUP BY l.name;
+
+
+--Declare your CTE, where you create a list of all matches with the league name.
+--Select the league, date, home, and away goals from the CTE.
+-- Filter the main query for matches with 10 or more goals.
+-- Set up your CTE
+WITH match_list AS (
+  -- Select the league name, date, home, and away goals
+    SELECT 
+  		l.name AS league, 
+     	m.date, 
+  		m.home_goal, 
+  		m.away_goal,
+       (m.home_goal + m.away_goal) AS total_goals
+    FROM match AS m
+    LEFT JOIN league as l ON m.country_id = l.id)
+-- Select the league, date, home, and away goals from the CTE
+SELECT league, date, home_goal, away_goal
+FROM match_list
+-- Filter by total goals
+WHERE  match_list.total_goals>=10;
 
 
 
-
-
-from words import get_random_word
-
-NUM_ATTEMPTS = 6
-
-def main():
-    # Delete pass and start writing your solution here.
-    print("Welcome to Wordle!")
-    secret="candy"
-    
-    for attempt in range(1, NUM_ATTEMPTS+1): 
-
-        guess= input("Enter your guess: ")
-        results= []
-        remaining_letters=[]
-        new_results=[]
-        for i in secret:
-            remaining_letters.append(i)
-        for i in range(len(secret)): 
-            if guess[i]==secret[i]:
-                results.append("G")
-                remaining_letters.remove(guess[i])
-            else:
-                results.append("B")
-        
-        for i in range(len(guess)):
-            if results[i] == "B":
-                if guess[i] in remaining_letters:
-                    results[i]="Y"
-                    remaining_letters.remove(guess[i])
-        for i in range(len(results)):
-            if results[i] == "G":
-                new_results.append(f"[{guess[i]}]")
-            elif results[i] == "Y":
-                new_results.append(f"({guess[i]})")
-            else:
-                new_results.append(f"{guess[i]}")
-        print(f"Result: {" ".join(new_results)}") 
-        if guess == secret:
-            print(f"Congratulations! You guessed the word in {attempt+1} tries!")
-            return
-
-    
-    
-
-    
-
-
-
-if __name__ == "__main__":
-    main()
+-- Declare a CTE that calculates the total goals from matches in August of the '2013/2014' season.
+-- Filter the list on the inner subquery to only select matches in August of the '2013/2014' season.
+-- LEFT JOIN the CTE onto the league table using country_id from the match_list CTE.
+-- Set up your CTE
+WITH match_list AS (
+    SELECT 
+  		country_id,
+  	   (home_goal + away_goal) AS goals
+    FROM match
+  	-- Create a list of match IDs to filter data in the CTE
+    WHERE id IN (
+       SELECT id
+       FROM match
+       WHERE season = '2013/2014' AND EXTRACT(MONTH FROM date) = 08))
+-- Select the league name and average of goals in the CTE
+SELECT 
+	l.name,
+    AVG(match_list.goals)
+FROM league AS l
+-- Join the CTE onto the league table using country_id
+LEFT JOIN match_list ON l.id = match_list.country_id
+GROUP BY l.name;
