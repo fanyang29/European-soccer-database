@@ -319,3 +319,46 @@ FROM league AS l
 -- Join the CTE onto the league table using country_id
 LEFT JOIN match_list ON l.id = match_list.country_id
 GROUP BY l.name;
+
+
+--Window function
+-- The OVER() clause allows you to apply an aggregate function across a dataset, similar to subqueries in SELECT. The OVER() clause offers significant benefits over subqueries in SELECT -- namely, your queries will run faster, and the OVER() clause has a wide range of additional functions and clauses you can include with it which we will cover later in this chapter.
+-- Select the match ID, country name, season, home_goal, and away_goal from the match and country tables.
+-- Complete the query that calculates the average number of goals scored overall and then includes the aggregate value in each row using a window function.
+SELECT 
+	-- Select the match id, country name, season, home, and away goals
+	m.id, 
+    c.name AS country, 
+    m.season,
+	m.home_goal,
+	m.away_goal,
+    -- Use a window to include the aggregate average in each row
+	AVG(m.home_goal + m.away_goal) OVER() AS overall_avg
+FROM match AS m
+LEFT JOIN country AS c ON m.country_id = c.id;
+
+
+
+-- RANK() OVER
+-- Window functions allow you to create a RANK of information according to any variable you want to use to sort your data. When setting this up, you will need to specify what column/calculation you want to use to calculate your rank. This is done by including an ORDER BY clause inside the OVER() clause. Below is an example:
+
+/*SELECT 
+    id,
+    RANK() OVER(ORDER BY home_goal) AS rank
+FROM match;*/
+-- SELECT the league name and average total goals scored from league and match.
+--Complete the window function so it calculates the RANK() of average goals scored across all leagues in the database. 
+-- Order the rank OVER the average total of home and away goals scored.
+SELECT 
+	-- Select the league name and average goals scored
+	l.name AS league,
+    AVG(m.home_goal + m.away_goal) AS avg_goals,
+    -- Rank each league over the average goals
+    RANK() OVER(ORDER BY AVG(m.home_goal + m.away_goal)) AS league_rank --or     RANK() OVER(ORDER BY AVG(m.home_goal + m.away_goal) DESC)
+FROM league AS l
+LEFT JOIN match AS m 
+ON l.id = m.country_id
+WHERE m.season = '2011/2012'
+GROUP BY l.name
+-- Order the query by the rank you created
+ORDER BY league_rank;
