@@ -362,3 +362,98 @@ WHERE m.season = '2011/2012'
 GROUP BY l.name
 -- Order the query by the rank you created
 ORDER BY league_rank;
+
+
+-- PARTITION BY a column
+-- The PARTITION BY clause allows you to calculate separate "windows" based on columns you want to divide your results. For example, you can create a single column that calculates an overall average of goals scored for each season.
+-- Complete the two window functions that calculate the home and away goal averages. Partition the window functions by season to calculate separate averages for each season.
+-- Filter the query to only include matches played by Legia Warszawa, id = 8673.
+
+SELECT
+	date,
+	season,
+	home_goal,
+	away_goal,
+	CASE WHEN hometeam_id = 8673 THEN 'home' 
+		 ELSE 'away' END AS warsaw_location,
+    -- Calculate separately the average home and away goals scored, partitioned by season
+    AVG(home_goal) OVER(PARTITION BY season) AS season_homeavg,
+    AVG(away_goal) OVER(PARTITION BY season) AS season_awayavg
+FROM match
+-- Filter the data set for Legia Warszawa (id 8673) matches only
+WHERE 
+	hometeam_id = 8673 
+    OR awayteam_id = 8673
+ORDER BY (home_goal + away_goal) DESC;
+
+
+-- PARTITION BY multiple columns
+-- Construct two window functions partitioning the average of home and away goals by season and month.
+-- Filter the dataset by Legia Warszawa's team ID (8673) so that the window calculation only includes matches involving them.
+SELECT 
+	date,
+	season,
+	home_goal,
+	away_goal,
+	CASE WHEN hometeam_id = 8673 THEN 'home' 
+         ELSE 'away' END AS warsaw_location,
+	-- Calculate average goals partitioned by season and month
+    AVG(home_goal) OVER(PARTITION BY season, 
+         	EXTRACT(month FROM date)) AS season_mo_home,      --by season and month
+    AVG(away_goal) OVER(PARTITION BY season, 
+            EXTRACT(month FROM date)) AS season_mo_away
+FROM match
+WHERE 
+	hometeam_id = 8673
+    OR awayteam_id = 8673
+ORDER BY (home_goal + away_goal) DESC;
+
+
+-- Slide to the left
+-- Sliding windows allow you to create running calculations between any two points in a window using functions such as PRECEDING, FOLLOWING, and CURRENT ROW. You can calculate running counts, sums, averages, and other aggregate functions between any two points you specify in the data set.
+-- Complete the window function by:
+/*Assessing the running total of home goals scored by FC Utrecht.
+Assessing the running average of home goals scored.
+Ordering both the running average and running total BY the date.*/
+SELECT 
+	date,
+	home_goal,
+	away_goal,
+    -- Create a running total and running average of home goals
+    SUM(home_goal) OVER(ORDER BY date 
+         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total,
+    AVG(home_goal) OVER(ORDER BY date 
+         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_avg
+FROM match
+WHERE 
+	hometeam_id = 9908 
+	AND season = '2011/2012';
+
+
+-- Slide to the right
+-- Now let's see how FC Utrecht performs when they're the away team. You'll notice that the total for the season is at the bottom of the data set you queried. Depending on your results, this could be pretty long, and scrolling down is not very helpful.
+-- In this exercise, you will slightly modify the query from the previous exercise by sorting the data set in reverse order and calculating a backward running total from the CURRENT ROW to the end of the data set (earliest record).
+/*
+Complete the window function by:
+Assessing the running total of away goals scored by FC Utrecht.
+Assessing the running average of away goals scored.
+Ordering both the running average and running total by date, descending*/
+
+SELECT
+    -- Select the date and away goals
+    date,
+    away_goal,
+    -- Create a running total sum and running average of away goals
+    SUM(away_goal) OVER(ORDER BY date DESC
+         ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS running_total,
+    AVG(away_goal) OVER(ORDER BY date DESC
+         ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS running_avg
+FROM match
+WHERE 
+	awayteam_id = 9908 
+    AND season = '2011/2012';
+
+
+
+
+
